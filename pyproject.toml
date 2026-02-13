@@ -1,0 +1,27 @@
+[project]
+name = "dcam2zarr"
+version = "0.1.0"
+description = "Hamamatsu DCAM to Zarr streaming"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy",
+    "pyDCAM",
+    "acquire-zarr",
+]
+
+[project.scripts]
+dcam2zarr = "dcam2zarr.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+sources = ["src"]
