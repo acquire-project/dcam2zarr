@@ -11,3 +11,6 @@ wheels/
 
 # Zarr output
 *.zarr
+
+# Config files
+*.json

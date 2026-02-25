@@ -70,7 +70,7 @@ def main():
     if args.output is not None:
         config.output_path = args.output
     if args.frames is not None:
-        config.frames = args.frames
+        config.max_frames = args.frames
     if args.chunk_x is not None:
         config.chunking.x = args.chunk_x
     if args.chunk_y is not None:
@@ -81,13 +81,13 @@ def main():
     # Initialize DCAM API
     device_count = pyDCAM.dcamapi_init()
 
-    if args.camera_index >= device_count:
-        print(f"Error: Camera {args.camera_index} not found (found {device_count} devices)")
+    if config.camera_index >= device_count:
+        print(f"Error: Camera {config.camera_index} not found (found {device_count} devices)")
         pyDCAM.dcamapi_uninit()
         return 1
 
     try:
-        with pyDCAM.HDCAM(args.camera_index) as hdcam:
+        with pyDCAM.HDCAM(config.camera_index) as hdcam:
             # Get camera info
             model = hdcam.dcamdev_getstring(pyDCAM.DCAM_IDSTR.DCAM_IDSTR_MODEL)
             camera_id = hdcam.dcamdev_getstring(pyDCAM.DCAM_IDSTR.DCAM_IDSTR_CAMERAID)
@@ -97,13 +97,22 @@ def main():
             print(f"Frames: {'unlimited' if config.max_frames is None else config.max_frames}")
             print(f"Chunking: x={config.chunking.x}, y={config.chunking.y}, t={config.chunking.t}")
             print(f"Sharding: x={config.sharding.x}, y={config.sharding.y}, t={config.sharding.t}")
+            print(f"Compression: {config.compression.codec.value} (level {config.compression.level})" if config.compression.enabled else "Compression: disabled")
+            print(f"Multiscale: {config.multiscale.method.value}" if config.multiscale.enabled else "Multiscale: disabled")
             print()
 
             streamer = DCAMStreamer(
                 hdcam=hdcam,
-                output_path=str(args.output),
-                chunk_time=args.chunk_size,
-                max_frames=args.frames
+                output_path=str(config.output_path),
+                chunk_x=config.chunking.x,
+                chunk_y=config.chunking.y,
+                chunk_t=config.chunking.t,
+                shard_x=config.sharding.x,
+                shard_y=config.sharding.y,
+                shard_t=config.sharding.t,
+                max_frames=config.max_frames,
+                compression=config.compression if config.compression.enabled else None,
+                multiscale=config.multiscale if config.multiscale.enabled else None,
             )
 
             print(f"Frame shape: {streamer.frame_shape}")

@@ -5,6 +5,8 @@ import numpy as np
 from pyDCAM import HDCAM, DCAMIDPROP
 import acquire_zarr as aqz
 
+from dcam2zarr.config import Compression, Multiscale
+
 
 def get_camera_config(hdcam: HDCAM) -> tuple[tuple[int, int], np.dtype]:
     """Auto-detect camera frame shape and dtype.
@@ -48,6 +50,8 @@ class DCAMStreamer:
             shard_y: int,
             shard_t: int,
             max_frames: Optional[int] = None,
+            compression: Optional[Compression] = None,
+            multiscale: Optional[Multiscale] = None,
     ):
         self.hdcam = hdcam
         self.output_path = output_path
@@ -58,6 +62,8 @@ class DCAMStreamer:
         self.shard_y = shard_y
         self.shard_t = shard_t
         self.max_frames = max_frames
+        self.compression = compression
+        self.multiscale = multiscale
 
         # Auto-detect camera configuration
         self.frame_shape, self.dtype = get_camera_config(hdcam)
@@ -76,10 +82,33 @@ class DCAMStreamer:
             overwrite=True
         )
 
+        compression = None
+        if self.compression and self.compression.enabled:
+            compression = aqz.CompressionSettings(
+                compressor=aqz.Compressor.BLOSC1,
+                codec=aqz.CompressionCodec.BLOSC_ZSTD if self.compression.codec.lower() == "zstd" else aqz.CompressionCodec.BLOSC_LZ4,
+                level=self.compression.level,
+                shuffle=1
+            )
+
+        downsampling_method = None
+        if self.multiscale and self.multiscale.enabled:
+            match self.multiscale.method.lower():
+                case "mean":
+                    downsampling_method = aqz.DownsamplingMethod.MEAN
+                case "min":
+                    downsampling_method = aqz.DownsamplingMethod.MIN
+                case "max":
+                    downsampling_method = aqz.DownsamplingMethod.MAX
+                case _:
+                    raise ValueError(f"Unsupported downsampling method: {self.multiscale.method}")
+
         # Main frame array
         frame_array = aqz.ArraySettings(
             output_key="frames",
             data_type=self.dtype,
+            compression=compression,
+            downsampling_method=downsampling_method,
             dimensions=[
                 aqz.Dimension(
                     name="t",

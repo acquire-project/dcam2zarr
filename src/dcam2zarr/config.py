@@ -1,6 +1,33 @@
+from enum import Enum
 from pathlib import Path
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
+
+
+class CompressionCodec(str, Enum):
+    """Compression codec options."""
+    ZSTD = "zstd"
+    LZ4 = "lz4"
+
+
+class DownsamplingMethod(str, Enum):
+    """Downsampling method for multiscale."""
+    MEAN = "mean"
+    MIN = "min"
+    MAX = "max"
+
+
+class Compression(BaseModel):
+    """Compression configuration."""
+    enabled: bool = Field(False, description="Enable compression")
+    codec: CompressionCodec = Field(CompressionCodec.ZSTD, description="Compression codec")
+    level: int = Field(3, ge=0, le=9, description="Compression level (0-9)")
+
+
+class Multiscale(BaseModel):
+    """Multiscale pyramid configuration."""
+    enabled: bool = Field(False, description="Enable multiscale pyramids")
+    method: DownsamplingMethod = Field(DownsamplingMethod.MEAN, description="Downsampling method")
 
 
 class Chunking(BaseModel):
@@ -40,6 +67,8 @@ class DCAMConfig(BaseModel):
     max_frames: Optional[int] = Field(None, gt=0, description="Max frames to capture (None = unlimited)")
     chunking: Chunking = Field(default_factory=Chunking)
     sharding: Sharding = Field(default_factory=Sharding)
+    compression: Compression = Field(default_factory=Compression)
+    multiscale: Multiscale = Field(default_factory=Multiscale)
     monitor: Monitor = Field(default_factory=Monitor)
 
     @classmethod
