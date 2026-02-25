@@ -1,6 +1,8 @@
 """Command-line interface for DCAM to Zarr streaming."""
 import argparse
 from pathlib import Path
+import os
+
 import pyDCAM
 
 from .stream import DCAMStreamer
@@ -64,7 +66,7 @@ def main():
                             output_path=args.output or "output.zarr",
                             max_frames=args.frames)
 
-    # CLI overrides
+    # CLI overrides 
     if args.camera_index is not None:
         config.camera_index = args.camera_index
     if args.output is not None:
@@ -122,11 +124,26 @@ def main():
 
             streamer.stream_frames()
 
+            # Get compressed size on disk
+            table_size = config.sharding.x * config.sharding.y * config.sharding.t * 8 * 2 + 4  # Approximate overhead per shard
+            bytes_on_disk = 0
+
+            data_dir = config.output_path / "frames/0" if config.multiscale.enabled else config.output_path / "frames"
+            for dirpath, _, filenames in os.walk(data_dir):
+                for f in filenames:
+                    if f.endswith(".zarr"):
+                        continue
+
+                    fp = os.path.join(dirpath, f)
+                    bytes_on_disk += os.path.getsize(fp) - table_size  # Subtract overhead
+
             # Print statistics
             stats = streamer.get_stats()
             print("\nCapture complete:")
             print(f"  Frames: {stats['frames_captured']}")
             print(f"  Bytes: {stats['bytes_written']:,}")
+            print(f"  Bytes on Disk: {bytes_on_disk:,}" if config.compression.enabled else f"  Bytes on Disk: {bytes_on_disk:,}")
+            print(f"  Compression Ratio: {stats['bytes_written'] / bytes_on_disk:.2f}" if bytes_on_disk > 0 else "  Compression Ratio: N/A")
             print(f"  Time: {stats['elapsed_seconds']:.2f}s")
             print(f"  FPS: {stats['frames_per_second']:.2f}")
             print(f"  Throughput: {stats['throughput_mbps']:.2f} MB/s")
