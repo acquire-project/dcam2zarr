@@ -137,5 +137,17 @@ def main():
     return 0
 
 
+def ls_cams():
+    device_count = pyDCAM.dcamapi_init()
+    print(f"Found {device_count} camera(s):")
+    for i in range(device_count):
+        with pyDCAM.HDCAM(i) as hdcam:
+            model = hdcam.dcamdev_getstring(pyDCAM.DCAM_IDSTR.DCAM_IDSTR_MODEL)
+            camera_id = hdcam.dcamdev_getstring(pyDCAM.DCAM_IDSTR.DCAM_IDSTR_CAMERAID)
+            print(f"  [{i}] {model} ({camera_id})")
+            
+    pyDCAM.dcamapi_uninit()
+
+
 if __name__ == "__main__":
     exit(main())

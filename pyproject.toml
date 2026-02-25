@@ -13,6 +13,7 @@ dependencies = [
 
 [project.scripts]
 dcam2zarr = "dcam2zarr.cli:main"
+ls_cams = "dcam2zarr.cli:ls_cams"
 
 [project.optional-dependencies]
 dev = [
