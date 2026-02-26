@@ -23,6 +23,8 @@ dev = [
     "pytest",
     "ruff",
     "black",
+    "requests",
+    "matplotlib",
 ]
 
 [build-system]

@@ -63,6 +63,8 @@ def create_app(
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to read frame: {e}")
 
+        shape = frame.shape
+
         # Check if ROI parameters provided
         roi_params = [x, y, w, h]
         if any(p is not None for p in roi_params):
@@ -79,6 +81,8 @@ def create_app(
                 raise HTTPException(status_code=400, detail="Invalid ROI parameters")
             if x + w > width or y + h > height:
                 raise HTTPException(status_code=400, detail="ROI exceeds frame bounds")
+            
+            shape = (h, w)
 
             # Extract ROI
             roi = frame[y : y + h, x : x + w]
@@ -93,7 +97,7 @@ def create_app(
             headers={
                 "X-Frame-Number": str(frame_number),
                 "X-Timestamp": str(timestamp),
-                "X-Frame-Shape": f"{frame.shape[0]},{frame.shape[1]}",
+                "X-Frame-Shape": f"{shape[0]},{shape[1]}",
                 "X-Frame-Dtype": str(frame.dtype),
             },
         )

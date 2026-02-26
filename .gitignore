@@ -14,3 +14,7 @@ wheels/
 
 # Config files
 *.json
+
+# Client artifacts
+*.png
+*.npy
