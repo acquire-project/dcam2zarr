@@ -8,17 +8,21 @@ dependencies = [
     "numpy",
     "pyDCAM",
     "pydantic",
+    "fastapi",
+    "uvicorn",
     "acquire-zarr",
 ]
 
 [project.scripts]
 dcam2zarr = "dcam2zarr.cli:main"
 ls_cams = "dcam2zarr.cli:ls_cams"
+dcam_server = "dcam2zarr.server:main"
 
 [project.optional-dependencies]
 dev = [
     "pytest",
     "ruff",
+    "black",
 ]
 
 [build-system]
