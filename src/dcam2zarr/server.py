@@ -1,10 +1,12 @@
 """HTTP server for accessing latest camera frames."""
 
 import argparse
+import os
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 import numpy as np
 
 from .shm import FrameBuffer
@@ -118,6 +120,11 @@ def create_app(
                 "dtype": str(frame.dtype),
             }
         )
+    
+    @app.get("/viewer")
+    async def get_viewer():
+        """Serve the HTML viewer."""
+        return FileResponse(os.path.join(os.path.dirname(__file__), "static", "viewer.html"))
 
     @app.on_event("shutdown")
     async def shutdown():
