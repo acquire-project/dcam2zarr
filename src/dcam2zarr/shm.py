@@ -21,7 +21,7 @@ class FrameBuffer:
     HEADER_SIZE = 26  # bytes
 
     def __init__(
-        self, name: str, shape: Tuple[int, int], dtype: np.dtype, create: bool = False
+            self, name: str, shape: Tuple[int, int], dtype: np.dtype, create: bool = False
     ):
         """
         Args:
@@ -65,9 +65,12 @@ class FrameBuffer:
             self._dtype_to_code(self.dtype),
         )
 
+        height, width = frame.shape
+        frame_size_bytes = height * width * np.dtype(self.dtype).itemsize
+
         # Write header + frame data
         self.shm.buf[: self.HEADER_SIZE] = header
-        self.shm.buf[self.HEADER_SIZE :] = frame.tobytes()
+        self.shm.buf[self.HEADER_SIZE:self.HEADER_SIZE + frame_size_bytes] = frame.tobytes()
 
     def read(self) -> Tuple[np.ndarray, int, float]:
         """Read frame with metadata from shared memory.
@@ -87,7 +90,7 @@ class FrameBuffer:
 
         # Read frame data
         frame_bytes = bytes(
-            self.shm.buf[self.HEADER_SIZE : self.HEADER_SIZE + expected_size]
+            self.shm.buf[self.HEADER_SIZE: self.HEADER_SIZE + expected_size]
         )
         frame = np.frombuffer(frame_bytes, dtype=dtype).reshape(shape).copy()
 

@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import time
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Response
@@ -27,9 +28,19 @@ def create_app(
 
     # Connect to shared memory
     shm_name = get_shm_name(camera_index)
-    frame_buffer = FrameBuffer(
-        name=shm_name, shape=frame_shape, dtype=dtype, create=False
-    )
+    max_retries = 50
+    retry_delay = 0.1  # seconds
+    
+    frame_buffer = None
+    for attempt in range(max_retries):
+        try:
+            frame_buffer = FrameBuffer(name=shm_name, shape=frame_shape, dtype=dtype, create=False)
+            print(f"Connected to shared memory: {shm_name}")
+            break
+        except FileNotFoundError:
+            if attempt == max_retries - 1:
+                raise RuntimeError(f"Failed to connect to shared memory '{shm_name}' after {max_retries} attempts")
+            time.sleep(retry_delay)
 
     @app.get("/")
     async def root():
@@ -83,7 +94,7 @@ def create_app(
                 raise HTTPException(status_code=400, detail="Invalid ROI parameters")
             if x + w > width or y + h > height:
                 raise HTTPException(status_code=400, detail="ROI exceeds frame bounds")
-            
+
             shape = (h, w)
 
             # Extract ROI
@@ -120,16 +131,25 @@ def create_app(
                 "dtype": str(frame.dtype),
             }
         )
-    
+
     @app.get("/viewer")
     async def get_viewer():
         """Serve the HTML viewer."""
-        return FileResponse(os.path.join(os.path.dirname(__file__), "static", "viewer.html"))
+        return FileResponse(
+            os.path.join(os.path.dirname(__file__), "static", "viewer.html")
+        )
 
     @app.on_event("shutdown")
     async def shutdown():
         """Cleanup on server shutdown."""
         frame_buffer.close()
+        # Don't unlink - camera process owns it
+        # Just unregister from resource tracker
+        try:
+            from multiprocessing import resource_tracker
+            resource_tracker.unregister(frame_buffer.shm._name, "shared_memory")
+        except Exception:
+            pass  # Best effort
 
     return app
 

@@ -33,3 +33,11 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build]
 sources = ["src"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --color=yes"
+log_cli = true # when true, messages are printed immediately
+testpaths = [
+    "tests",
+]
